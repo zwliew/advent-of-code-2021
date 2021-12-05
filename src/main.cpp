@@ -10,5 +10,4 @@ void configIO() {
 
 int main() {
     configIO();
-    aoc::day3();
 }
