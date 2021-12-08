@@ -5,10 +5,6 @@
 #include <cstdio>
 
 namespace aoc {
-    void day3();
-
-    void day4Part1();
-
     void day4Part2();
 
     void day5Part1();
@@ -22,6 +18,10 @@ namespace aoc {
     void day7Part1();
 
     void day7Part2();
+
+    void day8Part1();
+
+    void day8Part2();
 }
 
 #endif //ADVENT_OF_CODE_2021_DAYS_H

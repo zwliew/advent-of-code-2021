@@ -1,87 +1,126 @@
 #include "days.h"
 
+#include <string_view>
 #include <string>
 #include <iostream>
+#include <ranges>
 #include <vector>
+#include <charconv>
 #include <array>
-#include <map>
+#include <numeric>
 
 namespace day4 {
-    class Coordinate {
+    class Board {
     public:
-        int sx, sy, ex, ey;
+        static constexpr int BOARD_LEN = 5;
 
-        Coordinate(int sx, int sy, int ex, int ey) : sx{sx}, sy{sy}, ex{ex}, ey{ey} {}
-    };
+    private:
+        using board_t = std::array<std::array<int, BOARD_LEN>, BOARD_LEN>;
+        board_t data;
 
-    [[nodiscard]] std::array<int, 2> extractCoordinates(const std::string &token) {
-        std::array<int, 2> coordinates{-1, -1};
-        int curVal = 0;
-        for (const auto ch: token) {
-            if (ch == ',') {
-                coordinates[0] = curVal;
-                curVal = 0;
-            } else {
-                curVal = curVal * 10 + ch - '0';
+    public:
+        constexpr Board() : data{} {}
+
+        constexpr void set(int r, int c, int val) {
+            data[r][c] = val;
+        }
+
+        constexpr void mark(int val) {
+            for (auto &row: data) {
+                for (auto &cell: row) {
+                    if (cell == val) {
+                        cell = -1;
+                    }
+                }
             }
         }
-        coordinates[1] = curVal;
-        return coordinates;
-    }
 
-    [[nodiscard]] std::vector<Coordinate> parseInput() {
-        std::vector<Coordinate> coordinates;
-        std::string firstToken;
-        while (std::cin >> firstToken) {
-            std::string secondToken;
-            std::cin >> secondToken >> secondToken;
-            const auto start = extractCoordinates(firstToken);
-            const auto end = extractCoordinates(secondToken);
-            coordinates.emplace_back(start[0], start[1], end[0], end[1]);
+        constexpr bool bingo() {
+            // Check columns
+            for (int c = 0; c < BOARD_LEN; ++c) {
+                bool okay = true;
+                for (int r = 0; r < BOARD_LEN && okay; ++r) {
+                    if (data[r][c] != -1) {
+                        okay = false;
+                    }
+                }
+                if (okay) {
+                    return true;
+                }
+            }
+
+            // Check rows
+            for (int r = 0; r < BOARD_LEN; ++r) {
+                bool okay = true;
+                for (int c = 0; c < BOARD_LEN && okay; ++c) {
+                    if (data[r][c] != -1) {
+                        okay = false;
+                    }
+                }
+                if (okay) {
+                    return true;
+                }
+            }
+
+            return false;
         }
-        return coordinates;
-    }
 
-    int countRelevantPoints(const std::map<std::array<int, 2>, int> &count) {
-        int result = 0;
-        for (const auto &[k, v]: count) {
-            result += v >= 2;
+        constexpr int sumUnmarked() {
+            return std::accumulate(std::begin(data), std::end(data), 0, [](const auto &acc, const auto &cur) {
+                return acc + std::accumulate(std::begin(cur), std::end(cur), 0, [](const auto &acc, const auto &cur) {
+                    return acc + std::max(0, cur);
+                });
+            });
         }
-        return result;
+    };
+}
+
+// Part 2 solution
+void aoc::day4Part2() {
+    std::string line;
+    std::cin >> line;
+    const auto saids = line
+                       | std::ranges::views::split(',')
+                       | std::ranges::views::transform([](const auto &&str) {
+        return std::string_view(&*std::begin(str), std::ranges::distance(str));
+    });
+
+    std::vector<day4::Board> boards;
+    int num;
+    while (std::cin >> num) {
+        boards.resize(size(boards) + 1);
+        for (int i = 0; i < day4::Board::BOARD_LEN; ++i) {
+            for (int j = 0; j < day4::Board::BOARD_LEN; ++j) {
+                if (i || j) {
+                    std::cin >> num;
+                }
+                boards.back().set(i, j, num);
+            }
+        }
     }
 
-    std::map<std::array<int, 2>, int>
-    accumulateOverlaps(const std::vector<Coordinate> &coordinates, bool ignoreDiagonals) {
-        std::map<std::array<int, 2>, int> count;
-        for (const auto &coord: coordinates) {
-            if (ignoreDiagonals && coord.sx != coord.ex && coord.sy != coord.ey) {
+    size_t wonCount = 0;
+    for (const auto said: saids) {
+        int saidNum;
+        std::from_chars(said.data(), said.data() + size(said), saidNum);
+        int bingoIdx = -1;
+        for (size_t i = 0; i < size(boards); ++i) {
+            if (boards[i].bingo()) {
                 continue;
             }
-            const int dx = coord.sx <= coord.ex ? 1 : -1;
-            const int dy = coord.sy <= coord.ey ? 1 : -1;
-            const int minx = std::min(coord.sx, coord.ex);
-            const int maxx = std::max(coord.sx, coord.ex);
-            const int miny = std::min(coord.sy, coord.ey);
-            const int maxy = std::max(coord.sy, coord.ey);
-            for (int x = coord.sx, y = coord.sy;
-                 x != coord.ex || y != coord.ey;
-                 x = std::clamp(x + dx, minx, maxx), y = std::clamp(y + dy, miny, maxy)) {
-                ++count[{x, y}];
+            boards[i].mark(saidNum);
+            if (boards[i].bingo()) {
+                ++wonCount;
+                if (wonCount == std::size(boards)) {
+                    bingoIdx = i;
+                    break;
+                }
             }
-            ++count[{coord.ex, coord.ey}];
         }
-        return count;
+
+        if (bingoIdx != -1) {
+            std::cout << boards[bingoIdx].sumUnmarked() * saidNum;
+            break;
+        }
     }
-}
-
-void aoc::day4Part1() {
-    const auto coordinates = day4::parseInput();
-    const auto count = day4::accumulateOverlaps(coordinates, true);
-    std::cout << day4::countRelevantPoints(count);
-}
-
-void aoc::day4Part2() {
-    const auto coordinates = day4::parseInput();
-    const auto count = day4::accumulateOverlaps(coordinates, false);
-    std::cout << day4::countRelevantPoints(count);
 }

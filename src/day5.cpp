@@ -1,49 +1,87 @@
 #include "days.h"
 
-#include <array>
+#include <string>
 #include <iostream>
-#include <cassert>
-#include <numeric>
+#include <vector>
+#include <array>
+#include <map>
 
 namespace day5 {
-    constexpr int MAX_TIMER = 9;
+    class Coordinate {
+    public:
+        int sx, sy, ex, ey;
 
-    [[nodiscard]] auto parseInput() {
-        std::array<int64_t, MAX_TIMER> counts{};
-        char ch;
-        while (std::cin >> ch) {
-            if (ch != ',') {
-                assert(ch >= '0' && ch <= '8');
-                ++counts[ch - '0'];
+        Coordinate(int sx, int sy, int ex, int ey) : sx{sx}, sy{sy}, ex{ex}, ey{ey} {}
+    };
+
+    [[nodiscard]] std::array<int, 2> extractCoordinates(const std::string &token) {
+        std::array<int, 2> coordinates{-1, -1};
+        int curVal = 0;
+        for (const auto ch: token) {
+            if (ch == ',') {
+                coordinates[0] = curVal;
+                curVal = 0;
+            } else {
+                curVal = curVal * 10 + ch - '0';
             }
         }
-        return counts;
+        coordinates[1] = curVal;
+        return coordinates;
     }
 
-    void simulate(auto &counts, const int days) {
-        for (int day = 0; day < days; ++day) {
-            std::array<int64_t, day5::MAX_TIMER> nextCounts{};
-            for (int i = 0; i < day5::MAX_TIMER; ++i) {
-                if (!i) {
-                    nextCounts[6] += counts[i];
-                    nextCounts[8] += counts[i];
-                } else {
-                    nextCounts[i - 1] += counts[i];
-                }
-            }
-            std::swap(nextCounts, counts);
+    [[nodiscard]] std::vector<Coordinate> parseInput() {
+        std::vector<Coordinate> coordinates;
+        std::string firstToken;
+        while (std::cin >> firstToken) {
+            std::string secondToken;
+            std::cin >> secondToken >> secondToken;
+            const auto start = extractCoordinates(firstToken);
+            const auto end = extractCoordinates(secondToken);
+            coordinates.emplace_back(start[0], start[1], end[0], end[1]);
         }
+        return coordinates;
+    }
+
+    int countRelevantPoints(const std::map<std::array<int, 2>, int> &count) {
+        int result = 0;
+        for (const auto &[k, v]: count) {
+            result += v >= 2;
+        }
+        return result;
+    }
+
+    std::map<std::array<int, 2>, int>
+    accumulateOverlaps(const std::vector<Coordinate> &coordinates, bool ignoreDiagonals) {
+        std::map<std::array<int, 2>, int> count;
+        for (const auto &coord: coordinates) {
+            if (ignoreDiagonals && coord.sx != coord.ex && coord.sy != coord.ey) {
+                continue;
+            }
+            const int dx = coord.sx <= coord.ex ? 1 : -1;
+            const int dy = coord.sy <= coord.ey ? 1 : -1;
+            const int minx = std::min(coord.sx, coord.ex);
+            const int maxx = std::max(coord.sx, coord.ex);
+            const int miny = std::min(coord.sy, coord.ey);
+            const int maxy = std::max(coord.sy, coord.ey);
+            for (int x = coord.sx, y = coord.sy;
+                 x != coord.ex || y != coord.ey;
+                 x = std::clamp(x + dx, minx, maxx), y = std::clamp(y + dy, miny, maxy)) {
+                ++count[{x, y}];
+            }
+            ++count[{coord.ex, coord.ey}];
+        }
+        return count;
     }
 }
 
 void aoc::day5Part1() {
-    auto counts = day5::parseInput();
-    day5::simulate(counts, 80);
-    std::cout << std::accumulate(std::begin(counts), std::end(counts), static_cast<int64_t>(0));
+    const auto coordinates = day5::parseInput();
+    const auto count = day5::accumulateOverlaps(coordinates, true);
+    std::cout << day5::countRelevantPoints(count);
 }
 
 void aoc::day5Part2() {
-    auto counts = day5::parseInput();
-    day5::simulate(counts, 256);
-    std::cout << std::accumulate(std::begin(counts), std::end(counts), static_cast<int64_t>(0));
+    const auto coordinates = day5::parseInput();
+    const auto count = day5::accumulateOverlaps(coordinates, false);
+    std::cout << day5::countRelevantPoints(count);
 }
