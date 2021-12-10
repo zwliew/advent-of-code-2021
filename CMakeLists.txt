@@ -6,3 +6,6 @@ set(CMAKE_CXX_STANDARD 23)
 add_compile_options(-Werror -Wall -Wextra)
 
 add_subdirectory(src)
+
+find_package(fmt)
+target_link_libraries(aoc fmt::fmt)
