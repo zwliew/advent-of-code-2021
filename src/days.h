@@ -30,6 +30,18 @@ namespace aoc {
     void day10();
 
     void day11();
+
+    void day12();
+
+    void day13();
+
+    void day14();
+
+    void day15();
+
+    void day16();
+
+    void day17();
 }
 
 #endif //ADVENT_OF_CODE_2021_DAYS_H
