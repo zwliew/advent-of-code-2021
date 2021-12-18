@@ -101,7 +101,7 @@ void aoc::day4Part2() {
 
     size_t wonCount = 0;
     for (const auto said: saids) {
-        int saidNum;
+        int saidNum{};
         std::from_chars(said.data(), said.data() + size(said), saidNum);
         int bingoIdx = -1;
         for (size_t i = 0; i < size(boards); ++i) {

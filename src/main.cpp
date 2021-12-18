@@ -10,5 +10,5 @@ void configIO() {
 
 int main() {
     configIO();
-    aoc::day12();
+    aoc::day13();
 }
